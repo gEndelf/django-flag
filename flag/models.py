@@ -255,7 +255,7 @@ class FlaggedContent(models.Model):
         Called when a flag is added, to update the count and send a signal
         """
         # increment the count if status == 1
-        if self.status == 1:
+        if self.status == flag_settings.DEFAULT_STATUS:
             self.count = models.F('count') + 1
             self.save()
 
