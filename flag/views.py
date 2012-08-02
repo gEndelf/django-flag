@@ -195,7 +195,7 @@ def flag(request):
                 comment = None
 
             # manage status
-            status = form.cleaned_data.get('status', None) or None
+            status = form.cleaned_data.get('status', flag_settings.DEFAULT_STATUS) or flag_settings.DEFAULT_STATUS
 
             # add the flag, but check the user can do it
             try:

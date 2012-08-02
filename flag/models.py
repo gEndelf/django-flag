@@ -333,7 +333,7 @@ class FlagInstanceManager(models.Manager):
         if status:
             flagged_content.status = status
             # if the status is not the default one, we save the moderator
-            if status != flag_settings.STATUSES[0][0]:
+            if status != flag_settings.DEFAULT_STATUS:
                 flagged_content.moderator = user
         # always update the `when_updated` field
         flagged_content.save()

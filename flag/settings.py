@@ -8,6 +8,7 @@ __all__ = ('ALLOW_COMMENTS',
            'LIMIT_FOR_OBJECT',
            'MODELS',
            'STATUSES',
+           'DEFAULT_STATUS',
            'SEND_MAILS',
            'SEND_MAILS_TO',
            'SEND_MAILS_FROM',
@@ -26,6 +27,7 @@ _DEFAULTS = dict(
         (4, _("content removed by creator")),
         (5, _("content removed by moderator")),
     ],
+    DEFAULT_STATUS=1,
     SEND_MAILS=False,
     SEND_MAILS_TO=conf.settings.ADMINS,
     SEND_MAILS_FROM=conf.settings.DEFAULT_FROM_EMAIL,
@@ -63,6 +65,10 @@ MODELS = getattr(conf.settings, 'FLAG_MODELS', _DEFAULTS['MODELS'])
 # The default status used when a user flag an object is the first of this list.
 STATUSES = getattr(conf.settings, "FLAG_STATUSES",
             getattr(conf.settings, "FLAG_STATUS", _DEFAULTS['STATUSES']))
+
+# Set FLAG_DEFAULT_STATUS to ... the default status
+DEFAULT_STATUS = getattr(conf.settings, 'FLAG_DEFAULT_STATUS', 
+                         _DEFAULTS['DEFAULT_STATUS'])
 
 # Set FLAG_SEND_MAILS to True if you want to have emails sent when object are
 # flagged.
