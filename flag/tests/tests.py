@@ -187,19 +187,6 @@ class BaseTestCaseWithData(BaseTestCase):
         self.model_with_author = ModelWithAuthor.objects.create(
                 name='bar', author=self.author)
 
-    def tearDown(self):
-        """
-        Drop all objects
-        """
-        self._delete_flags()
-        self._delete_flagged_contents()
-        ModelWithoutAuthor.objects.all().delete()
-        ModelWithAuthor.objects.all().delete()
-        self.user.delete()
-        self.author.delete()
-
-        super(BaseTestCaseWithData, self).tearDown()
-
 
 class ModelsTestCase(BaseTestCaseWithData):
     """
@@ -287,17 +274,21 @@ class ModelsTestCase(BaseTestCaseWithData):
         self.assertNotRaises(
             self._add_flagged_content, self.model_with_author)
 
-    def test_flagged_content_unicity(self):
+    def test_flagged_content_unicity_without_author(self):
         """
         Test that we cannot add more than one FlaggedContent for the same
-        object
+        object (with author)
         """
-        self.assertNotRaises(
-            self._add_flagged_content, self.model_without_author)
-        self.assertNotRaises(
-            self._add_flagged_content, self.model_with_author)
+        self._add_flagged_content(self.model_without_author)
         self.assertRaises(IntegrityError,
             self._add_flagged_content, self.model_without_author)
+
+    def test_flagged_content_unicity_with_author(self):
+        """
+        Test that we cannot add more than one FlaggedContent for the same
+        object (without author)
+        """
+        self._add_flagged_content(self.model_with_author)
         self.assertRaises(IntegrityError,
             self._add_flagged_content, self.model_with_author)
 
