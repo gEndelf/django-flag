@@ -557,7 +557,6 @@ class ModelsTestCase(BaseTestCaseWithData):
 
         # add a flag by saying "send the signal"
         flag_instance = add(send_signal=True)
-        print flag_instance
 
         self.assertEqual(self.signal_received['flagged_instance'],
                 flag_instance)
