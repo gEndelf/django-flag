@@ -1,5 +1,6 @@
 from datetime import date
 
+from django.conf import settings
 from django.db import models
 from django.core import urlresolvers
 from django.contrib.auth.models import User
@@ -262,8 +263,9 @@ class FlaggedContent(models.Model):
         # we do it here and not in the form validation because we want it to be
         # invisible from the user pov
 
-        if flag_settings.NEEDS_TRUST:
+        if settings.FLAG_NEEDS_TRUST:
             if not flag_instance.can_creator_be_trusted():
+                print 'SHOULD NOT GET HERE\n'*4
                 flag_instance.delete()
                 return
 
@@ -519,7 +521,7 @@ class FlagInstance(models.Model):
         """
         settings.FLAG_TRUST_TIME should be a number of days
         """
-        return ((date.today() - self.user.date_joined.date()).days > flag_settings.TRUST_TIME)
+        return ((date.today() - self.user.date_joined.date()).days > settings.FLAG_TRUST_TIME)
 
 def add_flag(flagger, content_type, object_id, content_creator, comment,
         status=None, send_signal=True, send_mails=True):

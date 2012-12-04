@@ -43,6 +43,7 @@ class BaseTestCase(TestCase):
     ]
 
     test_settings = dict(
+        FLAG_NEEDS_TRUST=False,
         ROOT_URLCONF='urls',
         DEBUG=settings.DEBUG)  # used when swapping the debug mode
 
@@ -556,6 +557,8 @@ class ModelsTestCase(BaseTestCaseWithData):
 
         # add a flag by saying "send the signal"
         flag_instance = add(send_signal=True)
+        print flag_instance
+
         self.assertEqual(self.signal_received['flagged_instance'],
                 flag_instance)
 
