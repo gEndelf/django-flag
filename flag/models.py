@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.db import models
 from django.core import urlresolvers
 from django.contrib.auth.models import User
@@ -254,6 +256,17 @@ class FlaggedContent(models.Model):
         """
         Called when a flag is added, to update the count and send a signal
         """
+        
+        # add a rule to delete the FlagInstance if the creator is not trusted
+        # cf #1497
+        # we do it here and not in the form validation because we want it to be
+        # invisible from the user pov
+
+        if flag_settings.NEEDS_TRUST:
+            if not flag_instance.can_creator_be_trusted():
+                flag_instance.delete()
+                return
+
         # increment the count if status == 1
         if self.status == flag_settings.DEFAULT_STATUS:
             self.count = models.F('count') + 1
@@ -501,6 +514,12 @@ class FlagInstance(models.Model):
             pass
         return url
 
+
+    def can_creator_be_trusted(self):
+        """
+        settings.FLAG_TRUST_TIME should be a number of days
+        """
+        return ((date.today() - self.user.date_joined.date()).days > flag_settings.TRUST_TIME)
 
 def add_flag(flagger, content_type, object_id, content_creator, comment,
         status=None, send_signal=True, send_mails=True):

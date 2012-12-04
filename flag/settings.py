@@ -17,6 +17,8 @@ __all__ = ('ALLOW_COMMENTS',
 # keep the default values
 _DEFAULTS = dict(
     ALLOW_COMMENTS=True,
+    NEEDS_TRUST=True,
+    TRUST_TIME=2,
     LIMIT_SAME_OBJECT_FOR_USER=0,
     LIMIT_FOR_OBJECT=0,
     MODELS=None,
@@ -40,6 +42,17 @@ _DEFAULTS = dict(
 ALLOW_COMMENTS = getattr(conf.settings,
                          'FLAG_ALLOW_COMMENTS',
                          _DEFAULTS['ALLOW_COMMENTS'])
+
+# boolean stating whether an user needs to be trusted before being
+# able to flag some content
+NEEDS_TRUST = getattr(conf.settings, 
+                     'FLAG_NEEDS_TRUST',
+                     _DEFAULTS['NEEDS_TRUST'])
+# The number of days that a user must have created his account 
+# before he is allowed to flag content
+TRUST_TIME = getattr(conf.settings, 
+                     'FLAG_TRUST_TIME',
+                     _DEFAULTS['TRUST_TIME'])
 
 # Set FLAG_LIMIT_SAME_OBJECT_FOR_USER to a number in settings to limit the
 # times a user can flag a single object
