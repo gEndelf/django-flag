@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from copy import copy
 import time
 
@@ -1284,3 +1284,40 @@ class FlagViewsTestCase(BaseTestCaseWithData):
         self.assertTrue(isinstance(flag_instance, FlagInstance))
         self.assertEqual(flag_instance.flagged_content.content_object,
                          self.model_with_author)
+
+
+class TrustedTestCase(BaseTestCaseWithData):
+
+    def _create_flag(self, obj):
+        comment = u'test'
+        return FlagInstance.objects.add(self.author, obj, self.user,
+                    comment=comment, send_signal=True, send_mails=True)
+
+    def _test_flag_instance(self, model, trusted):
+        #specific settings (would break the other tests)
+        flag_settings.NEEDS_TRUST = True
+        flag_settings.SEND_MAILS = True
+
+        fi = self._create_flag(model)
+        content = fi.flagged_content
+        self.assertEqual(content.flag_instances.count(), int(trusted))
+        self.assertEqual(len(mail.outbox), 1)
+        if trusted:
+            self.assertEqual(mail.outbox[0].subject.find('DELETED'), -1)
+        else:
+            self.assertNotEqual(mail.outbox[0].subject.find('DELETED'), -1)
+
+    def test_user_delater_not_trusted(self):
+        self._test_flag_instance(self.model_without_author, False)
+
+    def test_comment_delater_not_trusted(self):
+        self._test_flag_instance(self.model_with_author, False)
+
+    def test_user_delater_is_trusted(self):
+        self.author.date_joined = datetime.now() - timedelta(days = settings.FLAG_TRUST_TIME+1)
+        self._test_flag_instance(self.model_without_author, True)
+
+    def test_comment_delater_is_trusted(self):
+        self.author.date_joined = datetime.now() - timedelta(days = settings.FLAG_TRUST_TIME+1)
+        self.author.save()
+        self._test_flag_instance(self.model_with_author, True)

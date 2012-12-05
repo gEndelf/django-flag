@@ -179,3 +179,10 @@ msgstr[0] ""
 msgstr[1] ""
 "Le contenu de type %(app_label)s.%(model_name)s n°%(object_id)s vient d'être "
 "signalé (%(count)s fois au total)"
+
+#:templates/flag/mail_alert_subject.txt:1
+msgid "(DELETED)"
+msgstr "(SUPPRIME)"
+
+msgid "!!! This flag has been deleted because its creator is not trusted !!!"
+msgstr "!!! Ce flag a été suprimé car son auteur n'est pas inscrit au service depuis suffisament longtemps !!!"

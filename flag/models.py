@@ -1,3 +1,5 @@
+import logging
+
 from datetime import date
 
 from django.conf import settings
@@ -263,31 +265,31 @@ class FlaggedContent(models.Model):
         # we do it here and not in the form validation because we want it to be
         # invisible from the user pov
 
-        if settings.FLAG_NEEDS_TRUST:
+        is_fake = False
+        if self.content_settings('NEEDS_TRUST'):
             if not flag_instance.can_creator_be_trusted():
-                print 'SHOULD NOT GET HERE\n'*4
-                flag_instance.delete()
-                return
+                is_fake = True
 
-        # increment the count if status == 1
-        if self.status == flag_settings.DEFAULT_STATUS:
-            self.count = models.F('count') + 1
-            self.save()
+        if not is_fake:
+            # get the the count value from the db, not from the stored Instance
+            # increment the count if status == 1
+            if self.status == flag_settings.DEFAULT_STATUS:
+                self.count = models.F('count') + 1
+                self.save()
 
-            # update count of the current object
-            new_self = FlaggedContent.objects.get(id=self.id)
-            self.count = new_self.count
+            # send a signal if wanted
+            if send_signal:
+                signals.content_flagged.send(
+                    sender=FlaggedContent,
+                    flagged_content=self,
+                    flagged_instance=flag_instance)
 
-        # send a signal if wanted
-        if send_signal:
-            signals.content_flagged.send(
-                sender=FlaggedContent,
-                flagged_content=self,
-                flagged_instance=flag_instance)
+        # update count of the current object
+        new_self = FlaggedContent.objects.get(id=self.id)
+        self.count = new_self.count
 
         # send emails if wanted
         if send_mails and self.content_settings('SEND_MAILS'):
-
             # always send mail if the max flag is reached
             limit = self.content_settings('LIMIT_FOR_OBJECT')
             really_send_mails = limit \
@@ -303,6 +305,9 @@ class FlaggedContent(models.Model):
                         current_min_count, current_step = min_count, step
                     else:
                         break
+                    
+                #from IPython import embed
+                #embed()
 
                 # do we need to send mail ?
                 if current_step and \
@@ -310,8 +315,13 @@ class FlaggedContent(models.Model):
                     really_send_mails = True
 
             # finally send mails if we really want to do it
-            if really_send_mails:
-                flag_instance.send_mails()
+            # if the flag is to be deleted, we send the mail anyway
+            if is_fake or really_send_mails:
+                flag_instance.send_mails(is_fake)
+
+        if is_fake:
+            logging.warning('The flag #%d was deleted because its creator #%d is not trusted ! ' % (flag_instance.pk, flag_instance.user.pk))
+            flag_instance.delete()
 
     def get_status_display(self):
         """
@@ -430,9 +440,11 @@ class FlagInstance(models.Model):
             self.flagged_content.flag_added(self, send_signal=send_signal,
                 send_mails=send_mails)
 
-    def send_mails(self):
+    def send_mails(self, is_fake=False):
         """
         Send mails to alert of the current flag
+        if is_fake is set to true, the FlagInstance will be deleted because
+        its author is not trusted
         """
         recipients = self.content_settings('SEND_MAILS_TO')
         if not (self.content_settings('SEND_MAILS') and recipients):
@@ -466,7 +478,9 @@ class FlagInstance(models.Model):
             flagger_url=self.get_flagger_absolute_url(),
             flagger_admin_url=self.get_flagger_admin_url(),
 
-            site=Site.objects.get_current())
+            site=Site.objects.get_current(),
+
+            is_fake=is_fake)
 
         if self.flagged_content.creator:
             context.update(dict(
