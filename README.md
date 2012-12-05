@@ -122,6 +122,23 @@ FLAG_MODELS_SETTINGS = {
 }
 ```
 
+### FLAG_NEEDS_TRUST
+Use `FLAG_NEEDS_TRUST` if you want the flags from untrusted users to be deleted
+
+Exemple:
+
+```python
+FLAG_NEEDS_TRUST = True
+```
+
+### FLAG_TRUST_TIME
+This is the number of days after a user suscribed before he is 'trusted' and thus can flag content
+
+Exemple
+
+```python
+FLAG_TRUST_TIME = 3
+```
 
 ## Usage
 

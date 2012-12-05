@@ -17,8 +17,8 @@ __all__ = ('ALLOW_COMMENTS',
 # keep the default values
 _DEFAULTS = dict(
     ALLOW_COMMENTS=True,
-    NEEDS_TRUST=True,
-    TRUST_TIME=2,
+    NEEDS_TRUST=False,
+    #TRUST_TIME=3,
     LIMIT_SAME_OBJECT_FOR_USER=0,
     LIMIT_FOR_OBJECT=0,
     MODELS=None,

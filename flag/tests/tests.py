@@ -1294,7 +1294,7 @@ class TrustedTestCase(BaseTestCaseWithData):
                     comment=comment, send_signal=True, send_mails=True)
 
     def _test_flag_instance(self, model, trusted):
-        #specific settings (would break the other tests)
+        # specific settings (would break the other tests)
         flag_settings.NEEDS_TRUST = True
         flag_settings.SEND_MAILS = True
 

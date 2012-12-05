@@ -530,6 +530,8 @@ class FlagInstance(models.Model):
 
     def can_creator_be_trusted(self):
         """
+        This method is used to test if self.user meets the requirements to add a flag
+        for now, we only test the number of days the user has subscribed against FLAG_TRUST_TIME
         settings.FLAG_TRUST_TIME should be a number of days
         """
         return ((date.today() - self.user.date_joined.date()).days > settings.FLAG_TRUST_TIME)
