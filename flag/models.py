@@ -261,9 +261,9 @@ class FlaggedContent(models.Model):
         """
         
         # add a rule to delete the FlagInstance if the creator is not trusted
-        # cf #1497
         # we do it here and not in the form validation because we want it to be
-        # invisible from the user pov
+        # invisible from the user pov, which mean the process don't change
+        # but we delete the flag in the end
 
         is_fake = False
         if self.content_settings('NEEDS_TRUST'):
@@ -305,9 +305,6 @@ class FlaggedContent(models.Model):
                         current_min_count, current_step = min_count, step
                     else:
                         break
-                    
-                #from IPython import embed
-                #embed()
 
                 # do we need to send mail ?
                 if current_step and \
