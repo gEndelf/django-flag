@@ -1303,9 +1303,9 @@ class TrustedTestCase(BaseTestCaseWithData):
         self.assertEqual(content.flag_instances.count(), int(trusted))
         self.assertEqual(len(mail.outbox), 1)
         if trusted:
-            self.assertEqual(mail.outbox[0].subject.find('DELETED'), -1)
+            self.assertEqual(mail.outbox[0].subject.find('non trusted'), -1)
         else:
-            self.assertNotEqual(mail.outbox[0].subject.find('DELETED'), -1)
+            self.assertNotEqual(mail.outbox[0].subject.find('non trusted'), -1)
 
     def test_user_delater_not_trusted(self):
         self._test_flag_instance(self.model_without_author, False)

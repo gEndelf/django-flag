@@ -12,13 +12,15 @@ __all__ = ('ALLOW_COMMENTS',
            'SEND_MAILS',
            'SEND_MAILS_TO',
            'SEND_MAILS_FROM',
-           'SEND_MAILS_RULES')
+           'SEND_MAILS_RULES',
+           'NEEDS_TRUST',
+           'TRUST_TIME')
 
 # keep the default values
 _DEFAULTS = dict(
     ALLOW_COMMENTS=True,
     NEEDS_TRUST=False,
-    #TRUST_TIME=3,
+    TRUST_TIME=3,
     LIMIT_SAME_OBJECT_FOR_USER=0,
     LIMIT_FOR_OBJECT=0,
     MODELS=None,

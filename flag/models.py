@@ -1,7 +1,3 @@
-import logging
-
-from datetime import date
-
 from django.conf import settings
 from django.db import models
 from django.core import urlresolvers
@@ -17,7 +13,7 @@ from django.utils.encoding import force_unicode
 from flag import settings as flag_settings
 from flag import signals
 from flag.exceptions import *
-from flag.utils import get_content_type_tuple
+from flag.utils import get_content_type_tuple, can_user_be_trusted
 
 
 class FlaggedContentManager(models.Manager):
@@ -165,8 +161,14 @@ class FlaggedContent(models.Model):
         """
         Check that the LIMIT_SAME_OBJECT_FOR_USER is not raised for this user
         """
+
         if not self.can_be_flagged():
             return False
+        
+        if self.content_settings('NEEDS_TRUST'):
+            if not can_user_be_trusted(self.user):
+                return False
+
         limit = self.content_settings('LIMIT_SAME_OBJECT_FOR_USER')
         if not limit:
             return True
@@ -176,11 +178,18 @@ class FlaggedContent(models.Model):
         """
         Raise an exception if the given user cannot flag this object
         """
+
         try:
             self.assert_can_be_flagged()
         except ContentFlaggedEnoughException, e:
             raise e
         else:
+            if self.content_settings('NEEDS_TRUST'):
+                if not can_user_be_trusted(user):
+                    # The user is not supposed to see this message, 
+                    # this exception should have a special catch
+                    raise FlagUserNotTrustedException('User not trusted')
+
             # do not use self.can_be_flagged_by_user because we need the count
             limit = self.content_settings('LIMIT_SAME_OBJECT_FOR_USER')
             if not limit:
@@ -259,30 +268,18 @@ class FlaggedContent(models.Model):
         """
         Called when a flag is added, to update the count and send a signal
         """
-        
-        # add a rule to delete the FlagInstance if the creator is not trusted
-        # we do it here and not in the form validation because we want it to be
-        # invisible from the user pov, which mean the process don't change
-        # but we delete the flag in the end
+        # get the the count value from the db, not from the stored Instance
+        # increment the count if status == 1
+        if self.status == flag_settings.DEFAULT_STATUS:
+            self.count = models.F('count') + 1
+            self.save()
 
-        is_fake = False
-        if self.content_settings('NEEDS_TRUST'):
-            if not flag_instance.can_creator_be_trusted():
-                is_fake = True
-
-        if not is_fake:
-            # get the the count value from the db, not from the stored Instance
-            # increment the count if status == 1
-            if self.status == flag_settings.DEFAULT_STATUS:
-                self.count = models.F('count') + 1
-                self.save()
-
-            # send a signal if wanted
-            if send_signal:
-                signals.content_flagged.send(
-                    sender=FlaggedContent,
-                    flagged_content=self,
-                    flagged_instance=flag_instance)
+        # send a signal if wanted
+        if send_signal:
+            signals.content_flagged.send(
+                sender=FlaggedContent,
+                flagged_content=self,
+                flagged_instance=flag_instance)
 
         # update count of the current object
         new_self = FlaggedContent.objects.get(id=self.id)
@@ -313,12 +310,8 @@ class FlaggedContent(models.Model):
 
             # finally send mails if we really want to do it
             # if the flag is to be deleted, we send the mail anyway
-            if is_fake or really_send_mails:
-                flag_instance.send_mails(is_fake)
-
-        if is_fake:
-            logging.warning('The flag #%d was deleted because its creator #%d is not trusted ! ' % (flag_instance.pk, flag_instance.user.pk))
-            flag_instance.delete()
+            if really_send_mails:
+                flag_instance.send_mails()
 
     def get_status_display(self):
         """
@@ -371,8 +364,13 @@ class FlagInstanceManager(models.Manager):
             params['status'] = flagged_content.status
 
         flag_instance = FlagInstance(**params)
-        flag_instance.save(send_signal=send_signal,
-                           send_mails=send_mails)
+
+        # we won't save this if the user is not trusted !
+        if not flag_instance.content_settings('NEEDS_TRUST') or can_user_be_trusted(user):
+            flag_instance.save(send_signal=send_signal,
+                               send_mails=send_mails)
+        else:
+            flag_instance.send_untrusted_warning_mails()
 
         return flag_instance
 
@@ -437,12 +435,7 @@ class FlagInstance(models.Model):
             self.flagged_content.flag_added(self, send_signal=send_signal,
                 send_mails=send_mails)
 
-    def send_mails(self, is_fake=False):
-        """
-        Send mails to alert of the current flag
-        if is_fake is set to true, the FlagInstance will be deleted because
-        its author is not trusted
-        """
+    def _send_mails(self, subject_templates, content_templates):
         recipients = self.content_settings('SEND_MAILS_TO')
         if not (self.content_settings('SEND_MAILS') and recipients):
             return
@@ -476,8 +469,7 @@ class FlagInstance(models.Model):
             flagger_admin_url=self.get_flagger_admin_url(),
 
             site=Site.objects.get_current(),
-
-            is_fake=is_fake)
+            )
 
         if self.flagged_content.creator:
             context.update(dict(
@@ -486,15 +478,8 @@ class FlagInstance(models.Model):
                 creator_admin_url=self.flagged_content.\
                         get_creator_admin_url()))
 
-        subject = render_to_string([
-                'flag/mail_alert_subject_%s_%s.txt' % (app_label, model_name),
-                'flag/mail_alert_subject.txt'],
-            context).replace("\n", " ").replace("\r", " ")
-
-        message = render_to_string([
-                'flag/mail_alert_body_%s_%s.txt' % (app_label, model_name),
-                'flag/mail_alert_body.txt'],
-            context)
+        subject = render_to_string(subject_templates, context).replace("\n", " ").replace("\r", " ")
+        message = render_to_string(content_templates, context)
 
         # really send the mails !
         send_mail(
@@ -503,6 +488,36 @@ class FlagInstance(models.Model):
             from_email=self.content_settings('SEND_MAILS_FROM'),
             recipient_list=recipient_list,
             fail_silently=True)
+
+
+    def send_untrusted_warning_mails(self):
+        # subject and body from templates
+        app_label = self.flagged_content.content_object._meta.app_label
+        model_name = self.flagged_content.content_object._meta.module_name
+        subject_templates = [
+                'flag/untrusted_mail_alert_subject_%s_%s.txt' % (app_label, model_name),
+                'flag/untrusted_mail_alert_subject.txt']
+        content_templates = [
+                'flag/untrusted_mail_alert_body_%s_%s.txt' % (app_label, model_name),
+                'flag/untrusted_mail_alert_body.txt']
+        self._send_mails(subject_templates, content_templates)
+
+
+    def send_mails(self):
+        """
+        Send mails to alert of the current flag
+        """
+        # subject and body from templates
+        app_label = self.flagged_content.content_object._meta.app_label
+        model_name = self.flagged_content.content_object._meta.module_name
+        subject_templates = [
+                'flag/mail_alert_subject_%s_%s.txt' % (app_label, model_name),
+                'flag/mail_alert_subject.txt']
+        content_templates = [
+                'flag/mail_alert_body_%s_%s.txt' % (app_label, model_name),
+                'flag/mail_alert_body.txt']
+        self._send_mails(subject_templates, content_templates)
+
 
     def get_flagger_admin_url(self):
         """
@@ -527,14 +542,6 @@ class FlagInstance(models.Model):
             pass
         return url
 
-
-    def can_creator_be_trusted(self):
-        """
-        This method is used to test if self.user meets the requirements to add a flag
-        for now, we only test the number of days the user has subscribed against FLAG_TRUST_TIME
-        settings.FLAG_TRUST_TIME should be a number of days
-        """
-        return ((date.today() - self.user.date_joined.date()).days > settings.FLAG_TRUST_TIME)
 
 def add_flag(flagger, content_type, object_id, content_creator, comment,
         status=None, send_signal=True, send_mails=True):
