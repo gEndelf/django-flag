@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from copy import copy
 import time
+import os
 
 from django.test import TestCase
 from django.contrib.auth.models import User, AnonymousUser
@@ -1302,15 +1303,18 @@ class TrustedTestCase(BaseTestCaseWithData):
         # specific settings (would break the other tests)
         flag_settings.NEEDS_TRUST = True
         flag_settings.SEND_MAILS = True
+        settings.TEMPLATE_DIRS = (os.path.join(os.path.dirname(__file__), 'templates'),)
 
         fi = self._create_flag(model)
         content = fi.flagged_content
         self.assertEqual(content.flag_instances.count(), int(trusted))
+
+        # test that the right mail is used
         self.assertEqual(len(mail.outbox), 1)
         if trusted:
-            self.assertEqual(mail.outbox[0].subject.find('non trusted'), -1)
+            self.assertEqual(mail.outbox[0].subject[:7], 'trusted')
         else:
-            self.assertNotEqual(mail.outbox[0].subject.find('non trusted'), -1)
+            self.assertEqual(mail.outbox[0].subject[:9], 'untrusted')
 
     def test_user_delater_not_trusted(self):
         self._test_flag_instance(self.model_without_author, False)

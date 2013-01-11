@@ -44,7 +44,7 @@ def get_content_type_tuple(content_type):
 
 def can_user_be_trusted(user):
     """
-    This method is used to test if self.user meets the requirements to add a flag.
+    This method is used to test if the given user meets the requirements to add a flag.
     for now, we only test the number of days the user has subscribed against FLAG_TRUST_TIME
     settings.FLAG_TRUST_TIME should be a number of days
     """

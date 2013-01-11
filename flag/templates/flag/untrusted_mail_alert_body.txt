@@ -1,22 +1,8 @@
-{% load i18n %}{% autoescape off %}{% blocktrans with object_id=object.pk %}Hi
+{% extends "flag/base_alert.txt" %}{% load i18n %}{% autoescape off %}{% block top %}{% blocktrans with object_id=object.pk %}Hi
 
 A non trusted user tried to flag a "{{ app_label }}.{{ model_name }}" object (#{{ object_id }}):
 
     {{ object }}
 
-{% endblocktrans %}
-{% if object_url %}    {% blocktrans with domain=site.domain %}Its url: http://{{ domain }}{{ object_url }}{% endblocktrans %}{% endif %}
-{% if object_admin_url %}    {% blocktrans with domain=site.domain %}Its admin url: http://{{ domain }}{{ object_admin_url }}{% endblocktrans %}{% endif %}
-{% if flag.comment %}{% blocktrans with comment=flag.comment %}
-Comment:
------------------------------------------------------------------------
-{{ comment }}
------------------------------------------------------------------------{% endblocktrans %}{% endif %}   
-{% blocktrans %}The flag's author is: {{ flagger }}{% endblocktrans %}
-{% if flagger_admin_url %}    {% blocktrans with domain=site.domain %}His admin url: http://{{ domain }}{{ flagger_admin_url }}{% endblocktrans %}{% endif %}
-{% if creator %}
-{% blocktrans %}The flagged object was created by {{ creator }}{% endblocktrans %}
-{% if creator_url %}    {% blocktrans with domain=site.domain %}His url: http://{{ domain }}{{ creator_url }}{% endblocktrans %}{% endif %}
-{% if creator_admin_url %}    {% blocktrans with domain=site.domain %}His admin url: http://{{ domain }}{{ creator_admin_url }}{% endblocktrans %}{% endif %}
-{% endif %}
+{% endblocktrans %}{% endblock %}
 {% endautoescape %}

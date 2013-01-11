@@ -366,11 +366,11 @@ class FlagInstanceManager(models.Manager):
         flag_instance = FlagInstance(**params)
 
         # we won't save this if the user is not trusted !
-        if not flag_instance.content_settings('NEEDS_TRUST') or can_user_be_trusted(user):
+        if flag_instance.content_settings('NEEDS_TRUST') and not can_user_be_trusted(user):
+            flag_instance.send_untrusted_warning_mails()            
+        else:
             flag_instance.save(send_signal=send_signal,
                                send_mails=send_mails)
-        else:
-            flag_instance.send_untrusted_warning_mails()
 
         return flag_instance
 
@@ -491,6 +491,10 @@ class FlagInstance(models.Model):
 
 
     def send_untrusted_warning_mails(self):
+        """
+        Send mails to alert of a failed attempt to flag a content
+        (fail because the flagger is not trusted)
+        """
         # subject and body from templates
         app_label = self.flagged_content.content_object._meta.app_label
         model_name = self.flagged_content.content_object._meta.module_name
