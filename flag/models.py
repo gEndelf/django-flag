@@ -9,11 +9,20 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.contrib.sites.models import Site
 from django.utils.encoding import force_unicode
+from django.utils import importlib
 
 from flag import settings as flag_settings
 from flag import signals
 from flag.exceptions import *
-from flag.utils import get_content_type_tuple, can_user_be_trusted
+from flag.utils import get_content_type_tuple
+
+try:
+    line = getattr(settings, 'FLAG_TRUST_EVAL_FUNC', 'flag.utils.can_user_be_trusted')
+    path = '.'.join(line.rsplit('.')[:-1])
+    func = line.rsplit('.')[-1]
+    can_user_be_trusted = getattr(importlib.import_module(path), func)
+except (ImportError, IndexError), e:
+    from flag.utils import can_user_be_trusted
 
 
 class FlaggedContentManager(models.Manager):

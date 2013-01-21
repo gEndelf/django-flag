@@ -21,6 +21,7 @@ _DEFAULTS = dict(
     ALLOW_COMMENTS=True,
     NEEDS_TRUST=False,
     TRUST_TIME=3,
+    TRUST_EVAL_FUNC='flag.utils.can_user_be_trusted',
     LIMIT_SAME_OBJECT_FOR_USER=0,
     LIMIT_FOR_OBJECT=0,
     MODELS=None,
@@ -44,10 +45,9 @@ _DEFAULTS = dict(
 ALLOW_COMMENTS = getattr(conf.settings,
                          'FLAG_ALLOW_COMMENTS',
                          _DEFAULTS['ALLOW_COMMENTS'])
-
 # boolean stating whether an user needs to be trusted before being
 # able to flag some content
-NEEDS_TRUST = getattr(conf.settings, 
+NEEDS_TRUST = getattr(conf.settings,
                      'FLAG_NEEDS_TRUST',
                      _DEFAULTS['NEEDS_TRUST'])
 # The number of days that a user must have created his account 
@@ -55,6 +55,11 @@ NEEDS_TRUST = getattr(conf.settings,
 TRUST_TIME = getattr(conf.settings, 
                      'FLAG_TRUST_TIME',
                      _DEFAULTS['TRUST_TIME'])
+# The function that evaluate if a user can be trusted or not
+TRUST_EVAL_FUNC = getattr(conf.settings, 
+                         'FLAG_TRUST_EVAL_FUNC',
+                         _DEFAULTS['TRUST_EVAL_FUNC'])
+
 
 # Set FLAG_LIMIT_SAME_OBJECT_FOR_USER to a number in settings to limit the
 # times a user can flag a single object

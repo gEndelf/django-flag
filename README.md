@@ -328,6 +328,10 @@ If `django-nose` is installed, it is used to run tests. You can see a coverage o
 
 The admin interface for *django-flag* has been improved a bit : better list and change form with for this one, links to flagged objects and their authors.
 
+### Trusted user
+
+If the setting FLAG_NEEDS_TRUST is set to True, every time a user flag a content, the user is evaluated with the function passed in settings.FLAG_TRUST_EVAL_FUNC, by default it is utils.can_user_be_trusted. If you want to change how an user is considered trusted, write a function which take only the user as an argument, and return a Boolean (True if the user can be trusted).
+The default evaluating function only returns True if the user has created his account for more than settings.FLAG_TRUST_TIME days.
 
 ## Internal
 

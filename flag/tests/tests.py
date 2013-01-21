@@ -1291,6 +1291,8 @@ class FlagViewsTestCase(BaseTestCaseWithData):
         self.assertEqual(flag_instance.flagged_content.content_object,
                          self.model_with_author)
 
+def dummy_eval_trust(user):
+    return True
 
 class TrustedTestCase(BaseTestCaseWithData):
 
@@ -1329,4 +1331,10 @@ class TrustedTestCase(BaseTestCaseWithData):
     def test_comment_delater_is_trusted(self):
         self.author.date_joined = datetime.now() - timedelta(days = settings.FLAG_TRUST_TIME+1)
         self.author.save()
+        self._test_flag_instance(self.model_with_author, True)
+
+    def test_change_flag_eval_func(self):
+        settings.FLAG_TRUST_EVAL_FUNC = 'flag.tests.dummy_eval_trust'
+        import flag.models 
+        reload(flag.models) #force reimport
         self._test_flag_instance(self.model_with_author, True)
