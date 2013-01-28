@@ -1,5 +1,7 @@
-from django.contrib.contenttypes.models import ContentType
+from datetime import date
 
+from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
 
 def get_content_type_tuple(content_type):
     """
@@ -38,3 +40,12 @@ def get_content_type_tuple(content_type):
             raise e
 
     return app_label, model
+
+
+def can_user_be_trusted(user):
+    """
+    This method is used to test if the given user meets the requirements to add a flag.
+    for now, we only test the number of days the user has subscribed against FLAG_TRUST_TIME
+    settings.FLAG_TRUST_TIME should be a number of days
+    """
+    return ((date.today() - user.date_joined.date()).days > settings.FLAG_TRUST_TIME)

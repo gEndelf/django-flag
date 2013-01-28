@@ -2,7 +2,8 @@ __all__ = ('FlagException',
            'ModelCannotBeFlaggedException',
            'ContentAlreadyFlaggedByUserException',
            'ContentFlaggedEnoughException',
-           'FlagCommentException')
+           'FlagCommentException',
+           'FlagUserNotTrustedException')
 
 
 class FlagException(Exception):
@@ -49,5 +50,12 @@ class OnlyStaffCanUpdateStatus(FlagException):
     """
     Exception raised when someone not in staff try to update the status
     of a flagged content
+    """
+    pass
+
+class FlagUserNotTrustedException(FlagException):
+    """
+    Exception raised in case someone not trusted try to flag a content
+    see FlagInstance.can_creator_be_trusted() for details
     """
     pass

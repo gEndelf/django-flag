@@ -18,7 +18,7 @@ from flag import settings as flag_settings
 from flag.forms import (FlagForm, FlagFormWithCreator, get_default_form,
         FlagFormWithStatus, FlagFormWithCreatorAndStatus)
 from flag.models import FlaggedContent, FlagInstance
-from flag.exceptions import FlagException, OnlyStaffCanUpdateStatus
+from flag.exceptions import FlagException, FlagUserNotTrustedException, OnlyStaffCanUpdateStatus
 
 
 def _validate_next_parameter(request, next):
@@ -234,8 +234,10 @@ def confirm(request, app_label, object_name, object_id, form=None):
     The template rendered is flag/confirm.html but it can be overrided for
     each model by defining a template flag/confirm_applabel_modelname.html
     """
+
     content_object = get_content_object('%s.%s' % (app_label, object_name),
                                         object_id)
+
     if (isinstance(content_object, HttpResponseBadRequest)):
             return content_object
 
@@ -260,6 +262,11 @@ def confirm(request, app_label, object_name, object_id, form=None):
         flagged_content = FlaggedContent.objects.get_for_object(content_object)
         try:
             flagged_content.assert_can_be_flagged_by_user(request.user)
+        except FlagUserNotTrustedException, e:
+            # we don't do anything here for now
+            # because we want the user to continue without noticing
+            # he can't really add a flag (yes, this is evil)
+            pass
         except FlagException, e:
             messages.error(request, unicode(e))
             return redirect(next)

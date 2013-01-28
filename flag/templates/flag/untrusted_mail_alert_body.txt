@@ -1,0 +1,8 @@
+{% extends "flag/base_alert.txt" %}{% load i18n %}{% autoescape off %}{% block top %}{% blocktrans with object_id=object.pk %}Hi
+
+A non trusted user tried to flag a "{{ app_label }}.{{ model_name }}" object (#{{ object_id }}):
+
+    {{ object }}
+
+{% endblocktrans %}{% endblock %}
+{% endautoescape %}

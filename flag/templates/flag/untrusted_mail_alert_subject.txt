@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}{% blocktrans with object_id=object.pk %}A non trusted user tried to flag Object {{ app_label }}.{{ model_name }} #{{ object_id }}{% endblocktrans %}{% endautoescape %}
