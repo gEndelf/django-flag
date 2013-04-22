@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import models
 from django.core import urlresolvers
 from django.contrib.auth.models import User
@@ -17,7 +16,7 @@ from flag.exceptions import *
 from flag.utils import get_content_type_tuple
 
 try:
-    line = getattr(settings, 'FLAG_TRUST_EVAL_FUNC', 'flag.utils.can_user_be_trusted')
+    line = flag_settings.TRUST_EVAL_FUNC
     path = '.'.join(line.rsplit('.')[:-1])
     func = line.rsplit('.')[-1]
     can_user_be_trusted = getattr(importlib.import_module(path), func)
@@ -376,11 +375,10 @@ class FlagInstanceManager(models.Manager):
 
         # we won't save this if the user is not trusted !
         if flag_instance.content_settings('NEEDS_TRUST') and not can_user_be_trusted(user):
-            flag_instance.send_untrusted_warning_mails()            
+            flag_instance.send_untrusted_warning_mails()
         else:
             flag_instance.save(send_signal=send_signal,
                                send_mails=send_mails)
-
         return flag_instance
 
 
@@ -557,10 +555,10 @@ class FlagInstance(models.Model):
 
 
 def add_flag(flagger, content_type, object_id, content_creator, comment,
-        status=None, send_signal=True, send_mails=True):
+             status=None, send_signal=True, send_mails=True):
     """
     This function is here for compatibility
     """
     content_object = content_type.get_object_for_this_type(id=object_id)
     return FlagInstance.objects.add(flagger, content_object, content_creator,
-        comment, status, send_signal, send_mails)
+                                    comment, status, send_signal, send_mails)
