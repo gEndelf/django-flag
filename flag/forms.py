@@ -1,10 +1,10 @@
 import time
+from hashlib import sha1
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.forms.util import ErrorDict
 from django.utils.crypto import salted_hmac, constant_time_compare
-from django.utils.hashcompat import sha_constructor
 from django.conf import settings
 
 from flag import settings as flag_settings
@@ -102,7 +102,7 @@ class SecurityForm(forms.Form):
         """Generate a (SHA1) security hash from the provided info."""
         # Django 1.2 compatibility
         info = (content_type, object_pk, timestamp, settings.SECRET_KEY)
-        return sha_constructor("".join(info)).hexdigest()
+        return sha1("".join(info)).hexdigest()
 
 
 class FlagForm(SecurityForm):
