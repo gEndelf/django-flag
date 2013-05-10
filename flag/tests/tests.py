@@ -1291,18 +1291,21 @@ class FlagViewsTestCase(BaseTestCaseWithData):
         self.assertEqual(flag_instance.flagged_content.content_object,
                          self.model_with_author)
 
+
 def dummy_eval_trust(user):
     return True
+
 
 class TrustedTestCase(BaseTestCaseWithData):
 
     def _create_flag(self, obj):
         comment = u'test'
         return FlagInstance.objects.add(self.author, obj, self.user,
-                    comment=comment, send_signal=True, send_mails=True)
+                                        comment=comment, send_signal=True, send_mails=True)
 
     def _test_flag_instance(self, model, trusted):
         # specific settings (would break the other tests)
+        flag_settings.MODELS = None
         flag_settings.NEEDS_TRUST = True
         flag_settings.SEND_MAILS = True
         settings.TEMPLATE_DIRS = (os.path.join(os.path.dirname(__file__), 'templates'),)
@@ -1325,16 +1328,19 @@ class TrustedTestCase(BaseTestCaseWithData):
         self._test_flag_instance(self.model_with_author, False)
 
     def test_user_delater_is_trusted(self):
-        self.author.date_joined = datetime.now() - timedelta(days = settings.FLAG_TRUST_TIME+1)
+        self.author.date_joined = datetime.now() - timedelta(days=settings.FLAG_TRUST_TIME + 1)
         self._test_flag_instance(self.model_without_author, True)
 
     def test_comment_delater_is_trusted(self):
-        self.author.date_joined = datetime.now() - timedelta(days = settings.FLAG_TRUST_TIME+1)
+        self.author.date_joined = datetime.now() - timedelta(days=settings.FLAG_TRUST_TIME + 1)
         self.author.save()
         self._test_flag_instance(self.model_with_author, True)
 
     def test_change_flag_eval_func(self):
-        settings.FLAG_TRUST_EVAL_FUNC = 'flag.tests.dummy_eval_trust'
-        import flag.models 
-        reload(flag.models) #force reimport
+        old_trust_eval_func = flag_settings.TRUST_EVAL_FUNC
+        flag_settings.TRUST_EVAL_FUNC = 'flag.tests.dummy_eval_trust'
+        import flag.models
+        reload(flag.models)  # force reimport
         self._test_flag_instance(self.model_with_author, True)
+        flag_settings.TRUST_EVAL_FUNC = old_trust_eval_func
+        reload(flag.models)  # force reimport
