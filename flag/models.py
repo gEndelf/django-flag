@@ -172,10 +172,6 @@ class FlaggedContent(models.Model):
 
         if not self.can_be_flagged():
             return False
-        
-        if self.content_settings('NEEDS_TRUST'):
-            if not can_user_be_trusted(self.user):
-                return False
 
         limit = self.content_settings('LIMIT_SAME_OBJECT_FOR_USER')
         if not limit:
@@ -192,12 +188,6 @@ class FlaggedContent(models.Model):
         except ContentFlaggedEnoughException, e:
             raise e
         else:
-            if self.content_settings('NEEDS_TRUST'):
-                if not can_user_be_trusted(user):
-                    # The user is not supposed to see this message, 
-                    # this exception should have a special catch
-                    raise FlagUserNotTrustedException('User not trusted')
-
             # do not use self.can_be_flagged_by_user because we need the count
             limit = self.content_settings('LIMIT_SAME_OBJECT_FOR_USER')
             if not limit:
@@ -269,7 +259,6 @@ class FlaggedContent(models.Model):
 
         # check if we can flag this model
         FlaggedContent.objects.assert_model_can_be_flagged(self.content_object)
-
         super(FlaggedContent, self).save(*args, **kwargs)
 
     def flag_added(self, flag_instance, send_signal=False, send_mails=False):
@@ -372,12 +361,7 @@ class FlagInstanceManager(models.Manager):
             params['status'] = flagged_content.status
 
         flag_instance = FlagInstance(**params)
-
-        # we won't save this if the user is not trusted !
-        if flag_instance.content_settings('NEEDS_TRUST') and not can_user_be_trusted(user):
-            flag_instance.send_untrusted_warning_mails()
-        else:
-            flag_instance.save(send_signal=send_signal,
+        flag_instance.save(send_signal=send_signal,
                                send_mails=send_mails)
         return flag_instance
 
@@ -435,12 +419,17 @@ class FlagInstance(models.Model):
                 raise FlagCommentException(
                         _('You are not allowed to add a comment'))
 
-        super(FlagInstance, self).save(*args, **kwargs)
 
-        # tell the flagged_content that it has a new flag
-        if is_new:
-            self.flagged_content.flag_added(self, send_signal=send_signal,
-                send_mails=send_mails)
+        # we won't save this if the user is not trusted !
+        if self.content_settings('NEEDS_TRUST') and not can_user_be_trusted(self.user):
+            self.send_untrusted_warning_mails()
+        else:
+            super(FlagInstance, self).save(*args, **kwargs)
+
+            # tell the flagged_content that it has a new flag
+            if is_new:
+                self.flagged_content.flag_added(self, send_signal=send_signal,
+                                                send_mails=send_mails)
 
     def _send_mails(self, subject_templates, content_templates):
         recipients = self.content_settings('SEND_MAILS_TO')
