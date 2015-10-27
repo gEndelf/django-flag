@@ -1,6 +1,7 @@
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.core import urlresolvers
-from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 from django.utils.translation import ugettext_lazy as _, ungettext
@@ -8,6 +9,7 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.contrib.sites.models import Site
 from django.utils.encoding import force_unicode
+
 from django.utils import importlib
 
 from flag import settings as flag_settings
@@ -49,7 +51,7 @@ class FlaggedContentManager(models.Manager):
         """
         app_label, model = get_content_type_tuple(model)
         queryset = self.filter(content_type__app_label=app_label,
-                content_type__model=model)
+                               content_type__model=model)
         if only_object_ids:
             queryset = queryset.values_list('object_id', flat=True)
         return queryset
@@ -99,24 +101,23 @@ class FlaggedContentManager(models.Manager):
         """
         if not self.model_can_be_flagged(content_type):
             raise ModelCannotBeFlaggedException(
-                    _('This model cannot be flagged'))
+                _('This model cannot be flagged'))
 
 
 class FlaggedContent(models.Model):
-
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey("content_type", "object_id")
 
     # user who created flagged content -- this is kept in model so it outlives
     # content
-    creator = models.ForeignKey(User,
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL,
                                 related_name="flagged_content",
                                 null=True,
                                 blank=True)
     status = models.PositiveSmallIntegerField(default=1, db_index=True)
     # moderator responsible for last status change
-    moderator = models.ForeignKey(User,
+    moderator = models.ForeignKey(settings.AUTH_USER_MODEL,
                                   null=True,
                                   related_name="moderated_content")
     count = models.PositiveIntegerField(default=0)
@@ -195,9 +196,9 @@ class FlaggedContent(models.Model):
             count = self.count_flags_by_user(user)
             if count >= limit:
                 error = ungettext(
-                            'You already flagged this',
-                            'You already flagged this %(count)d times',
-                            count) % {'count': count}
+                    'You already flagged this',
+                    'You already flagged this %(count)d times',
+                    count) % {'count': count}
                 raise ContentAlreadyFlaggedByUserException(error)
 
     def get_content_object_admin_url(self):
@@ -208,9 +209,9 @@ class FlaggedContent(models.Model):
         if self.content_object:
             try:
                 url = urlresolvers.reverse("admin:%s_%s_change" % (
-                        self.content_object._meta.app_label,
-                        self.content_object._meta.module_name),
-                    args=(self.object_id,))
+                    self.content_object._meta.app_label,
+                    self.content_object._meta.module_name),
+                                           args=(self.object_id,))
             except urlresolvers.NoReverseMatch:
                 pass
         return url
@@ -223,7 +224,7 @@ class FlaggedContent(models.Model):
         if self.content_object:
             try:
                 url = self.content_object.get_absolute_url()
-            except (AttributeError,  urlresolvers.NoReverseMatch):
+            except (AttributeError, urlresolvers.NoReverseMatch):
                 pass
         return url
 
@@ -235,7 +236,7 @@ class FlaggedContent(models.Model):
         if self.creator:
             try:
                 url = urlresolvers.reverse("admin:auth_user_change",
-                    args=(self.creator_id,))
+                                           args=(self.creator_id,))
             except urlresolvers.NoReverseMatch:
                 pass
         return url
@@ -247,8 +248,9 @@ class FlaggedContent(models.Model):
         url = None
         if self.creator:
             try:
-                url = User.objects.get(id=self.creator_id).get_absolute_url()
-            except (AttributeError,  urlresolvers.NoReverseMatch):
+                url = get_user_model().objects.get(
+                    id=self.creator_id).get_absolute_url()
+            except (AttributeError, urlresolvers.NoReverseMatch):
                 pass
         return url
 
@@ -286,8 +288,7 @@ class FlaggedContent(models.Model):
         if send_mails and self.content_settings('SEND_MAILS'):
             # always send mail if the max flag is reached
             limit = self.content_settings('LIMIT_FOR_OBJECT')
-            really_send_mails = limit \
-                and self.count >= limit
+            really_send_mails = limit and self.count >= limit
 
             # limit not reached, check rules
             if not really_send_mails:
@@ -336,10 +337,10 @@ class FlagInstanceManager(models.Manager):
         """
 
         # get or create the FlaggedContent object
-        flagged_content, created = FlaggedContent.objects.\
-                get_or_create_for_object(content_object,
-                                         content_creator,
-                                         status)
+        flagged_content, created = FlaggedContent.objects. \
+            get_or_create_for_object(content_object,
+                                     content_creator,
+                                     status)
 
         # save new status, moderator and updated date
         if status:
@@ -362,16 +363,16 @@ class FlagInstanceManager(models.Manager):
 
         flag_instance = FlagInstance(**params)
         flag_instance.save(send_signal=send_signal,
-                               send_mails=send_mails)
+                           send_mails=send_mails)
         return flag_instance
 
 
 class FlagInstance(models.Model):
-
-    flagged_content = models.ForeignKey(FlaggedContent, related_name='flag_instances')
-    user = models.ForeignKey(User)  # user flagging the content
+    flagged_content = models.ForeignKey(FlaggedContent,
+                                        related_name='flag_instances')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     when_added = models.DateTimeField(auto_now=False, auto_now_add=True)
-    comment = models.TextField(null=True, blank=True)  # comment by the flagger
+    comment = models.TextField(null=True, blank=True)
     status = models.PositiveSmallIntegerField(default=1, db_index=True)
 
     objects = FlagInstanceManager()
@@ -384,9 +385,9 @@ class FlagInstance(models.Model):
         Show the flagged object in the unicode string
         """
         app_label, model = get_content_type_tuple(
-                self.flagged_content.content_type_id)
+            self.flagged_content.content_type_id)
         return u'flag on %s.%s #%s by user #%s' % (
-                app_label, model, self.flagged_content.object_id, self.user_id)
+            app_label, model, self.flagged_content.object_id, self.user_id)
 
     def content_settings(self, name):
         """
@@ -417,11 +418,12 @@ class FlagInstance(models.Model):
                 raise FlagCommentException(_('You must add a comment'))
             if not allow_comments and self.comment:
                 raise FlagCommentException(
-                        _('You are not allowed to add a comment'))
+                    _('You are not allowed to add a comment'))
 
 
         # we won't save this if the user is not trusted !
-        if self.content_settings('NEEDS_TRUST') and not can_user_be_trusted(self.user):
+        if self.content_settings('NEEDS_TRUST') and not can_user_be_trusted(
+                self.user):
             self.send_untrusted_warning_mails()
         else:
             super(FlagInstance, self).save(*args, **kwargs)
@@ -458,23 +460,25 @@ class FlagInstance(models.Model):
             count=self.flagged_content.count,
 
             object_url=self.flagged_content.get_content_object_absolute_url(),
-            object_admin_url=self.flagged_content.\
-                    get_content_object_admin_url(),
+            object_admin_url=self.flagged_content. \
+                get_content_object_admin_url(),
 
             flagger_url=self.get_flagger_absolute_url(),
             flagger_admin_url=self.get_flagger_admin_url(),
 
             site=Site.objects.get_current(),
-            )
+        )
 
         if self.flagged_content.creator:
             context.update(dict(
                 creator=self.flagged_content.creator,
                 creator_url=self.flagged_content.get_creator_absolute_url(),
-                creator_admin_url=self.flagged_content.\
-                        get_creator_admin_url()))
+                creator_admin_url=self.flagged_content. \
+                    get_creator_admin_url()))
 
-        subject = render_to_string(subject_templates, context).replace("\n", " ").replace("\r", " ")
+        subject = render_to_string(subject_templates, context).replace("\n",
+                                                                       " ").replace(
+            "\r", " ")
         message = render_to_string(content_templates, context)
 
         # really send the mails !
@@ -485,7 +489,6 @@ class FlagInstance(models.Model):
             recipient_list=recipient_list,
             fail_silently=True)
 
-
     def send_untrusted_warning_mails(self):
         """
         Send mails to alert of a failed attempt to flag a content
@@ -495,13 +498,14 @@ class FlagInstance(models.Model):
         app_label = self.flagged_content.content_object._meta.app_label
         model_name = self.flagged_content.content_object._meta.module_name
         subject_templates = [
-                'flag/untrusted_mail_alert_subject_%s_%s.txt' % (app_label, model_name),
-                'flag/untrusted_mail_alert_subject.txt']
+            'flag/untrusted_mail_alert_subject_%s_%s.txt' % (
+                app_label, model_name),
+            'flag/untrusted_mail_alert_subject.txt']
         content_templates = [
-                'flag/untrusted_mail_alert_body_%s_%s.txt' % (app_label, model_name),
-                'flag/untrusted_mail_alert_body.txt']
+            'flag/untrusted_mail_alert_body_%s_%s.txt' % (
+                app_label, model_name),
+            'flag/untrusted_mail_alert_body.txt']
         self._send_mails(subject_templates, content_templates)
-
 
     def send_mails(self):
         """
@@ -511,13 +515,12 @@ class FlagInstance(models.Model):
         app_label = self.flagged_content.content_object._meta.app_label
         model_name = self.flagged_content.content_object._meta.module_name
         subject_templates = [
-                'flag/mail_alert_subject_%s_%s.txt' % (app_label, model_name),
-                'flag/mail_alert_subject.txt']
+            'flag/mail_alert_subject_%s_%s.txt' % (app_label, model_name),
+            'flag/mail_alert_subject.txt']
         content_templates = [
-                'flag/mail_alert_body_%s_%s.txt' % (app_label, model_name),
-                'flag/mail_alert_body.txt']
+            'flag/mail_alert_body_%s_%s.txt' % (app_label, model_name),
+            'flag/mail_alert_body.txt']
         self._send_mails(subject_templates, content_templates)
-
 
     def get_flagger_admin_url(self):
         """
@@ -526,7 +529,7 @@ class FlagInstance(models.Model):
         url = None
         try:
             url = urlresolvers.reverse("admin:auth_user_change",
-                args=(self.user_id,))
+                                       args=(self.user_id,))
         except urlresolvers.NoReverseMatch:
             pass
         return url
@@ -538,7 +541,7 @@ class FlagInstance(models.Model):
         url = None
         try:
             url = self.user.get_absolute_url()
-        except (AttributeError,  urlresolvers.NoReverseMatch):
+        except (AttributeError, urlresolvers.NoReverseMatch):
             pass
         return url
 
