@@ -121,7 +121,7 @@ class FlaggedContent(models.Model):
                                   null=True,
                                   related_name="moderated_content")
     count = models.PositiveIntegerField(default=0)
-    when_updated = models.DateTimeField(auto_now=True, auto_now_add=True)
+    when_updated = models.DateTimeField(auto_now=True)
 
     # manager
     objects = FlaggedContentManager()

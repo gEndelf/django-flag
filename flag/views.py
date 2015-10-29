@@ -1,9 +1,9 @@
 import urlparse
 
-from django.http import Http404, HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
-from django.db.models import get_model
+from django.db.models.loading import get_model
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
@@ -71,7 +71,7 @@ def get_confirm_url_for_object(content_object,
     """
     url = reverse('flag_confirm', kwargs=dict(
             app_label=content_object._meta.app_label,
-            object_name=content_object._meta.module_name,
+            object_name=content_object._meta.model_name,
             object_id=content_object.pk))
 
     query_string_args = {}
@@ -144,19 +144,14 @@ def flag(request):
 
         # only staff can update status
         with_status = 'status' in post_data
-        if with_status:
-            try:
-                assert_user_can_change_status(request.user)
-            except OnlyStaffCanUpdateStatus, e:
-                return FlagBadRequest(str(e))
 
         # the object to flag
         object_pk = post_data.get('object_pk')
         content_object = get_content_object(post_data.get("content_type"),
                                             object_pk)
 
-        if (isinstance(content_object, HttpResponseBadRequest)):
-                return content_object
+        if isinstance(content_object, HttpResponseBadRequest):
+            return content_object
 
         content_type = ContentType.objects.get_for_model(content_object)
 
@@ -175,7 +170,7 @@ def flag(request):
         if form.security_errors():
             return FlagBadRequest(
                 "The flag form failed security verification: %s" % \
-                    escape(str(form.security_errors())))
+                escape(str(form.security_errors())))
 
         if form.is_valid():
 
@@ -204,27 +199,29 @@ def flag(request):
             except FlagException, e:
                 messages.error(request, unicode(e))
             else:
-                messages.success(request, _("You have added a flag. A "
-                        "moderator will review your submission shortly."))
+                messages.success(
+                    request,
+                    _("You have added a flag."
+                      " A moderator will review your submission shortly.")
+                )
 
         else:
+            return HttpResponseBadRequest()
             # form not valid, we return to the confirm page
 
-            return confirm(request,
-                app_label=content_type.app_label,
-                object_name=content_type.model,
-                object_id=object_pk,
-                form=form)
+            # return confirm(request, app_label=content_type.app_label,
+            #                object_name=content_type.model,
+            #                object_id=object_pk, form=form)
 
     else:
         return FlagBadRequest("Invalid access")
 
     # try to always redirect to next
-    next = get_next(request)
-    if next:
+    if 'next' in request.POST:
+        next = get_next(request)
         return redirect(next)
     else:
-        raise Http404
+        return HttpResponse()
 
 
 @login_required
