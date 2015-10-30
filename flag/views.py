@@ -1,6 +1,6 @@
 import urlparse
 
-from django.http import HttpResponseBadRequest, HttpResponse
+from django.http import Http404, HttpResponseBadRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.db.models.loading import get_model
@@ -197,31 +197,39 @@ def flag(request):
                 FlagInstance.objects.add(request.user, content_object, creator,
                     comment, status, send_signal=True, send_mails=True)
             except FlagException, e:
-                messages.error(request, unicode(e))
+                if request.is_ajax():
+                    return HttpResponseBadRequest()
+                else:
+                    messages.error(request, unicode(e))
             else:
-                messages.success(
-                    request,
-                    _("You have added a flag."
-                      " A moderator will review your submission shortly.")
-                )
+                if request.is_ajax():
+                    return HttpResponse()
+                else:
+                    messages.success(
+                        request,
+                        _("You have added a flag."
+                          " A moderator will review your submission shortly.")
+                    )
 
         else:
-            return HttpResponseBadRequest()
-            # form not valid, we return to the confirm page
+            if request.is_ajax():
+                return HttpResponseBadRequest()
+            else:
+                # form not valid, we return to the confirm page
 
-            # return confirm(request, app_label=content_type.app_label,
-            #                object_name=content_type.model,
-            #                object_id=object_pk, form=form)
+                return confirm(request, app_label=content_type.app_label,
+                               object_name=content_type.model,
+                               object_id=object_pk, form=form)
 
     else:
         return FlagBadRequest("Invalid access")
 
     # try to always redirect to next
-    if 'next' in request.POST:
-        next = get_next(request)
+    next = get_next(request)
+    if next:
         return redirect(next)
     else:
-        return HttpResponse()
+        raise Http404
 
 
 @login_required
