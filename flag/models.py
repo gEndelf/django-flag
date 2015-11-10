@@ -148,7 +148,7 @@ class FlaggedContent(models.Model):
         Helper to get the number of flags on this flagged content by the
         given user
         """
-        return self.flag_instances.filter(user=user, status=1).count()
+        return self.flag_instances.filter(user=user).count()
 
     def can_be_flagged(self):
         """

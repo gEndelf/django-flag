@@ -150,6 +150,11 @@ def flag(request):
         content_object = get_content_object(post_data.get("content_type"),
                                             object_pk)
 
+        flagged_content = FlaggedContent.objects.get_for_object(
+                    content_object)
+        if not flagged_content.can_be_flagged_by_user(request.user):
+            return HttpResponseBadRequest()
+
         if isinstance(content_object, HttpResponseBadRequest):
             return content_object
 
