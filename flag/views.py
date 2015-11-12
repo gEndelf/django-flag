@@ -16,9 +16,11 @@ from django.conf import settings
 
 from flag import settings as flag_settings
 from flag.forms import (FlagForm, FlagFormWithCreator, get_default_form,
-        FlagFormWithStatus, FlagFormWithCreatorAndStatus)
+                        FlagFormWithStatus, FlagFormWithCreatorAndStatus)
+
 from flag.models import FlaggedContent, FlagInstance
-from flag.exceptions import FlagException, FlagUserNotTrustedException, OnlyStaffCanUpdateStatus
+from flag.exceptions import FlagException, FlagUserNotTrustedException, \
+    OnlyStaffCanUpdateStatus
 
 
 def _validate_next_parameter(request, next):
@@ -45,6 +47,29 @@ def get_next(request):
     if not next:
         next = getattr(request, 'path', None)
     return next
+
+
+def can_be_flagged_by(content_object, user):
+    """
+    This filter will return True if the given user can flag the given object.
+    We check that the user is authenticated, but also that the
+    LIMIT_SAME_OBJECT_FOR_USER is not raised
+    Usage: {% if some_object|can_by_flagged_by:request.user %}...{% endif %}
+    """
+    try:
+        if not (user and user.is_active and user.is_authenticated()):
+            return False
+        if not FlaggedContent.objects.model_can_be_flagged(content_object):
+            return False
+        try:
+            flagged_content = FlaggedContent.objects.get_for_object(
+                    content_object)
+            return flagged_content.can_be_flagged_by_user(user)
+        except ObjectDoesNotExist:
+            # no FlaggedContent, we know it canbe flagged
+            return True
+    except:
+        return False
 
 
 class FlagBadRequest(HttpResponseBadRequest):
@@ -150,9 +175,7 @@ def flag(request):
         content_object = get_content_object(post_data.get("content_type"),
                                             object_pk)
 
-        flagged_content = FlaggedContent.objects.get_for_object(
-                    content_object)
-        if not flagged_content.can_be_flagged_by_user(request.user):
+        if not can_be_flagged_by(content_object, request.user):
             return HttpResponseBadRequest()
 
         if isinstance(content_object, HttpResponseBadRequest):
