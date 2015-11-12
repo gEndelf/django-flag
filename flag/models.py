@@ -121,7 +121,7 @@ class FlaggedContent(models.Model):
                                   null=True,
                                   related_name="moderated_content")
     count = models.PositiveIntegerField(default=0)
-    when_updated = models.DateTimeField(auto_now=True, auto_now_add=True)
+    when_updated = models.DateTimeField(auto_now=True)
 
     # manager
     objects = FlaggedContentManager()
@@ -148,7 +148,7 @@ class FlaggedContent(models.Model):
         Helper to get the number of flags on this flagged content by the
         given user
         """
-        return self.flag_instances.filter(user=user, status=1).count()
+        return self.flag_instances.filter(user=user).count()
 
     def can_be_flagged(self):
         """
