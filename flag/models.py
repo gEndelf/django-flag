@@ -210,7 +210,7 @@ class FlaggedContent(models.Model):
             try:
                 url = urlresolvers.reverse("admin:%s_%s_change" % (
                     self.content_object._meta.app_label,
-                    self.content_object._meta.module_name),
+                    self.content_object._meta.model_name),
                                            args=(self.object_id,))
             except urlresolvers.NoReverseMatch:
                 pass
