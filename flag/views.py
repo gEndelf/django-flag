@@ -204,13 +204,11 @@ def flag(request):
 
             # manage creator
             creator = None
-            if form_class == FlagFormWithCreator:
+            if issubclass(form_class, FlagFormWithCreator):
                 creator_field = form.cleaned_data['creator_field']
                 if creator_field:
-                    creator = getattr(content_object,
-                                      creator_field,
-                                      None)
-
+                    creator = reduce(getattr, creator_field.split('.'),
+                                     content_object)
             # manage comment
             if flag_settings.get_for_model(content_object, 'ALLOW_COMMENTS'):
                 comment = form.cleaned_data['comment']
@@ -223,7 +221,8 @@ def flag(request):
             # add the flag, but check the user can do it
             try:
                 FlagInstance.objects.add(request.user, content_object, creator,
-                    comment, status, send_signal=True, send_mails=True)
+                                         comment, status, send_signal=True,
+                                         send_mails=True)
             except FlagException, e:
                 if request.is_ajax():
                     return HttpResponseBadRequest()

@@ -3,6 +3,7 @@ from datetime import date
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
 
+
 def get_content_type_tuple(content_type):
     """
     Return a tuple with `(app_name, model_name)` from "something"
@@ -35,7 +36,7 @@ def get_content_type_tuple(content_type):
     else:
         try:
             app_label = content_type._meta.app_label
-            model = content_type._meta.module_name
+            model = content_type._meta.model_name
         except Exception, e:
             raise e
 
