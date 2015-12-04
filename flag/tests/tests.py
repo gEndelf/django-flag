@@ -895,7 +895,7 @@ class FlagTemplateTagsTestCase(BaseTestCaseWithData):
         # an existing object without author
         wanted_url1 = reverse('flag_confirm', kwargs=dict(
                 app_label=self.model_without_author._meta.app_label,
-                object_name=self.model_without_author._meta.module_name,
+                object_name=self.model_without_author._meta.model_name,
                 object_id=self.model_without_author.id))
         self.assertEqual(wanted_url1, '/flag/tests/modelwithoutauthor/%d/'
                 % self.model_without_author.id)
@@ -905,7 +905,7 @@ class FlagTemplateTagsTestCase(BaseTestCaseWithData):
         # an existing object with author
         wanted_url2 = reverse('flag_confirm', kwargs=dict(
                 app_label=self.model_with_author._meta.app_label,
-                object_name=self.model_with_author._meta.module_name,
+                object_name=self.model_with_author._meta.model_name,
                 object_id=self.model_with_author.id))
         self.assertEqual(wanted_url2, '/flag/tests/modelwithauthor/%d/'
                 % self.model_with_author.id)
@@ -986,7 +986,7 @@ class FlagFormTestCase(BaseTestCaseWithData):
             str(self.model_without_author.id))
         self.assertEqual(form['content_type'].value(), '%s.%s' % (
             self.model_without_author._meta.app_label,
-            self.model_without_author._meta.module_name))
+            self.model_without_author._meta.model_name))
 
         # check security
         self.assertTrue('timestamp' in form.fields)

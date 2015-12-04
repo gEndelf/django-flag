@@ -25,7 +25,7 @@
                 |
                 {% with creator_url=obj.creator.get_absolute_url %}
                     {% if creator_url %}
-                        <a href="{{ obj.creator.get_absolute_url }}">{% trans "site link" %}</a>
+                        <a href="{{ creator_url }}">{% trans "site link" %}</a>
                     {% endif %}
                 {% endwith %}
             </p>
