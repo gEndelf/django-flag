@@ -3,7 +3,6 @@ import urlparse
 from django.http import Http404, HttpResponseBadRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
-from django.db.models.loading import get_model
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
@@ -11,7 +10,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import ugettext as _
 from django.contrib import messages
 from django.utils.html import escape
-
+from django.apps import apps
 from django.conf import settings
 
 from flag import settings as flag_settings
@@ -122,7 +121,7 @@ def get_content_object(ctype, object_pk):
     if ctype is None or object_pk is None:
         return FlagBadRequest("Missing content_type or object_pk field.")
     try:
-        model = get_model(*ctype.split(".", 1))
+        model = apps.get_model(*ctype.split(".", 1))
         FlaggedContent.objects.assert_model_can_be_flagged(model)
         return model._default_manager.get(pk=object_pk)
     except TypeError:

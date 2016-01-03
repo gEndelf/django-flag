@@ -1,5 +1,5 @@
 {% if form %}
-<form method="POST" action="{% url 'flag' %}">
+<form method="POST" action="{% url 'flag:flag_content' %}">
     {% csrf_token %}
     {{ form.as_p }}
     {% if next %}<input type="hidden" name="next" value="{{ next }}{% endif %}" />

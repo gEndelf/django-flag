@@ -1,17 +1,16 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db import models
 from django.core import urlresolvers
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
 from django.utils.translation import ugettext_lazy as _, ungettext
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.contrib.sites.models import Site
 from django.utils.encoding import force_unicode
 
-from django.utils import importlib
-
+from importlib import import_module
 from flag import settings as flag_settings
 from flag import signals
 from flag.exceptions import *
@@ -21,7 +20,7 @@ try:
     line = flag_settings.TRUST_EVAL_FUNC
     path = '.'.join(line.rsplit('.')[:-1])
     func = line.rsplit('.')[-1]
-    can_user_be_trusted = getattr(importlib.import_module(path), func)
+    can_user_be_trusted = getattr(import_module(path), func)
 except (ImportError, IndexError), e:
     from flag.utils import can_user_be_trusted
 
@@ -107,7 +106,7 @@ class FlaggedContentManager(models.Manager):
 class FlaggedContent(models.Model):
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
-    content_object = generic.GenericForeignKey("content_type", "object_id")
+    content_object = GenericForeignKey("content_type", "object_id")
 
     # user who created flagged content -- this is kept in model so it outlives
     # content
@@ -295,7 +294,7 @@ class FlaggedContent(models.Model):
                 # check rule
                 current_min_count, current_step = 0, 0
                 for min_count, step in self.content_settings(
-                        'SEND_MAILS_RULES'):
+                    'SEND_MAILS_RULES'):
                     if self.count >= min_count:
                         current_min_count, current_step = min_count, step
                     else:
@@ -303,7 +302,7 @@ class FlaggedContent(models.Model):
 
                 # do we need to send mail ?
                 if current_step and \
-                        not (self.count - current_min_count) % current_step:
+                    not (self.count - current_min_count) % current_step:
                     really_send_mails = True
 
             # finally send mails if we really want to do it
@@ -420,10 +419,9 @@ class FlagInstance(models.Model):
                 raise FlagCommentException(
                     _('You are not allowed to add a comment'))
 
-
         # we won't save this if the user is not trusted !
         if self.content_settings('NEEDS_TRUST') and not can_user_be_trusted(
-                self.user):
+            self.user):
             self.send_untrusted_warning_mails()
         else:
             super(FlagInstance, self).save(*args, **kwargs)

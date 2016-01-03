@@ -1,15 +1,14 @@
 from setuptools import setup, find_packages
 
-
 setup(
-    name = "django-flag",
-    version = "0.4",
-    description = "flagging of inapproriate/spam content in Django",
-    author = "Greg Newman",
-    author_email = "greg@20seven.org",
-    url = "http://code.google.com/p/django-flag/",
-    packages = find_packages(),
-    classifiers = [
+    name="django-flag",
+    version="0.4",
+    description="flagging of inapproriate/spam content in Django",
+    author="Greg Newman",
+    author_email="greg@20seven.org",
+    url="http://code.google.com/p/django-flag/",
+    packages=find_packages(),
+    classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Web Environment",
         "Intended Audience :: Developers",
@@ -18,6 +17,6 @@ setup(
         "Programming Language :: Python",
         "Framework :: Django",
     ],
-    include_package_data = True,
-    zip_safe = False,
+    include_package_data=True,
+    zip_safe=False,
 )
