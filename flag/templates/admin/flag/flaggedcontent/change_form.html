@@ -17,9 +17,17 @@
         {% if obj.creator %}
             <p>
                 {% blocktrans with obj.creator as creator %}Creator: {{ creator }}{% endblocktrans %}
-                <a href="{% url admin:auth_user_change obj.creator.id %}">{% trans "admin link" %}</a>
+                {% with admin_url=obj.get_creator_admin_url %}
+                    {% if admin_url %}
+                        <a href="{{ admin_url }}">{% trans "admin link" %}</a>
+                    {% endif %}
+                {% endwith %}
                 |
-                <a href="{{ obj.creator.get_absolute_url }}">{% trans "site link" %}</a>
+                {% with creator_url=obj.creator.get_absolute_url %}
+                    {% if creator_url %}
+                        <a href="{{ creator_url }}">{% trans "site link" %}</a>
+                    {% endif %}
+                {% endwith %}
             </p>
         {% endif %}
     {% endwith %}

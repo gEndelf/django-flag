@@ -209,7 +209,7 @@ class FlaggedContent(models.Model):
             try:
                 url = urlresolvers.reverse("admin:%s_%s_change" % (
                     self.content_object._meta.app_label,
-                    self.content_object._meta.module_name),
+                    self.content_object._meta.model_name),
                                            args=(self.object_id,))
             except urlresolvers.NoReverseMatch:
                 pass
@@ -234,8 +234,11 @@ class FlaggedContent(models.Model):
         url = None
         if self.creator:
             try:
-                url = urlresolvers.reverse("admin:auth_user_change",
-                                           args=(self.creator_id,))
+                url = urlresolvers.reverse(
+                    "admin:%s_%s_change" % (self.creator._meta.app_label,
+                                            self.creator._meta.model_name),
+                    args=(self.creator_id,)
+                )
             except urlresolvers.NoReverseMatch:
                 pass
         return url
@@ -446,7 +449,7 @@ class FlagInstance(models.Model):
 
         # subject and body from templates
         app_label = self.flagged_content.content_object._meta.app_label
-        model_name = self.flagged_content.content_object._meta.module_name
+        model_name = self.flagged_content.content_object._meta.model_name
 
         context = dict(
             flag=self,
@@ -494,7 +497,7 @@ class FlagInstance(models.Model):
         """
         # subject and body from templates
         app_label = self.flagged_content.content_object._meta.app_label
-        model_name = self.flagged_content.content_object._meta.module_name
+        model_name = self.flagged_content.content_object._meta.model_name
         subject_templates = [
             'flag/untrusted_mail_alert_subject_%s_%s.txt' % (
                 app_label, model_name),
@@ -511,7 +514,7 @@ class FlagInstance(models.Model):
         """
         # subject and body from templates
         app_label = self.flagged_content.content_object._meta.app_label
-        model_name = self.flagged_content.content_object._meta.module_name
+        model_name = self.flagged_content.content_object._meta.model_name
         subject_templates = [
             'flag/mail_alert_subject_%s_%s.txt' % (app_label, model_name),
             'flag/mail_alert_subject.txt']
