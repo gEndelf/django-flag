@@ -1,14 +1,14 @@
-from datetime import datetime, timedelta
 from copy import copy
 import time
 import os
 
+from datetime import datetime, timedelta
 from django.test import TestCase
 from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError
 from django.core.management import call_command
-from django.db.models import loading, ObjectDoesNotExist
+from django.db.models import ObjectDoesNotExist
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -69,7 +69,7 @@ class BaseTestCase(TestCase):
         settings.INSTALLED_APPS = tuple(
             list(self._original_installed_apps) + list(apps))
 
-        loading.cache.loaded = False
+        # loading.cache.loaded = False
         call_command('syncdb', interactive=False, verbosity=0)
 
         # Call the original method that does the fixtures etc.
@@ -84,7 +84,7 @@ class BaseTestCase(TestCase):
 
         # Restore the apps
         settings.INSTALLED_APPS = self._original_installed_apps
-        loading.cache.loaded = False
+        # loading.cache.loaded = False
         self._original_installed_apps = ()
 
         # restore settings

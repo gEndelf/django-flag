@@ -1,6 +1,6 @@
+from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.generic import GenericRelation
 
 from flag.models import FlaggedContent
 

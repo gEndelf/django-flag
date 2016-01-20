@@ -1,5 +1,6 @@
-from django.conf.urls.defaults import patterns, include, url
+from django.conf.urls import include, url
 
-urlpatterns = patterns('',
+app_name = 'flag'
+urlpatterns = [
     url(r'^flag/', include('flag.urls')),
-)
+]
